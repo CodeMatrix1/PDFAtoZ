@@ -3,3 +3,9 @@ sqlalchemy
 pydantic
 Uvicorn
 PyPDF2
+groq
+langchain
+flashtext
+requests
+pywsd
+git+https://github.com/boudinfl/pke.git

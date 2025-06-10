@@ -6,9 +6,11 @@ from typing import List
 import PyPDF2
 import io
 
+from mcqgen import excecute  # Make sure this is the correct import
+
 app = FastAPI()
 
-text=""
+text = ""
 
 origins = [
     "http://localhost:3000",
@@ -25,12 +27,21 @@ app.add_middleware(
 
 @app.post("/")
 async def load_pdf(file: UploadFile = File(...)):
-    text = ""
+    global text
     contents = await file.read()
     reader = PyPDF2.PdfReader(io.BytesIO(contents))
+    text = ""
     for page in reader.pages:
-        text += page.extract_text() + "\n"
+        page_text = page.extract_text()
+        if page_text:
+            text += page_text + "\n"
     return {"text": text}
+
+@app.post("/results")
+async def get_results():
+    global text
+    mcqs = excecute(text)
+    return {"mcqs": mcqs}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
