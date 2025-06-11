@@ -2,7 +2,14 @@ from groq import Groq
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains.summarize import load_summarize_chain
 from langchain.document_transformers import EmbeddingsClusteringFilter
-from langchain.embeddings import HuggingFaceBgeEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+import torch
+
+device = "cpu"  # force CPU
+
+# If you use SentenceTransformer directly:
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer("model-name", device=device)
 
 client = Groq(api_key="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")
 def groq_response(text):
@@ -40,7 +47,7 @@ def summarize_document_with_kmeans_clustering(text, llm, embeddings):
 model_name = "BAAI/bge-base-en-v1.5"
 model_kwargs = {"device": "cuda"} # CUDA for GPU support
 encode_kwargs = {"normalize_embeddings": True}
-embeddings = HuggingFaceBgeEmbeddings(
+embeddings = HuggingFaceEmbeddings(
      model_name=model_name,
      model_kwargs=model_kwargs,
      encode_kwargs=encode_kwargs

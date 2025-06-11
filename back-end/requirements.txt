@@ -7,5 +7,10 @@ groq
 langchain
 flashtext
 requests
+torch
 pywsd
+langchain-community
+langchain-huggingface
+transformers
+sentence-transformers
 git+https://github.com/boudinfl/pke.git

@@ -17,6 +17,7 @@ function HomePage() {
     setLoading(true);
     try {
       const res = await fetch("/sample.pdf");
+      print(res);
       const blob = await res.blob();
       const file = new File([blob], "sample.pdf", { type: "application/pdf" });
       setSelectedFile(file);
@@ -31,7 +32,7 @@ function HomePage() {
   useEffect(() => {
     // Only upload if a file is selected
     if (!selectedFile) return;
-
+    setLoading(true);
     const loadPDF = async () => {
       const formData = new FormData();
       formData.append("file", selectedFile);
@@ -47,6 +48,8 @@ function HomePage() {
         }
       } catch (error) {
         console.error("Error uploading file:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -68,6 +71,7 @@ function HomePage() {
         </span>
       </div>
       <button
+        disabled={!selectedFile || loading}
         className=" ml-auto bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600 transition"
         onClick={() => {
           window.location.href = "/results";

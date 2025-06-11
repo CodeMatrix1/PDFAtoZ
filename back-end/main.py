@@ -11,6 +11,7 @@ from mcqgen import excecute  # Make sure this is the correct import
 app = FastAPI()
 
 text = ""
+mcqs= ""
 
 origins = [
     "http://localhost:3000",
@@ -35,9 +36,9 @@ async def load_pdf(file: UploadFile = File(...)):
         page_text = page.extract_text()
         if page_text:
             text += page_text + "\n"
-    return {"text": text}
+    return {"msg": "successful"}
 
-@app.post("/results")
+@app.get("/results")
 async def get_results():
     global text
     mcqs = excecute(text)
