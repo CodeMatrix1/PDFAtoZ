@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from "react";
 
 function ResultsPage() {
@@ -12,6 +13,7 @@ function ResultsPage() {
           method: "GET",
         });
         const data = await res.json();
+        console.log("Fetched MCQs:", data.mcqs); // Debug: log fetched MCQs
         setMcqs(data.mcqs || []);
       } catch (error) {
         setMcqs([]);
@@ -33,7 +35,7 @@ function ResultsPage() {
             <h2 className="text-2xl font-semibold mb-4 text-gray-800">MCQ's</h2>
           </div>
           <div className="flex justify-center mb-4">
-            <div className="w-[800px] max-w-3xl bg-white shadow-xl rounded-2xl p-12">
+            <div className="w-[800px] max-w-10xl bg-white shadow-xl rounded-2xl p-12">
               {loading ? (
                 <div className="text-center text-gray-500">Loading MCQs...</div>
               ) : mcqs.length === 0 ? (

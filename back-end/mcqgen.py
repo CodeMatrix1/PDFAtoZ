@@ -1,4 +1,3 @@
-from summarizer import Summarizer
 import os
 import pprint
 import itertools
@@ -14,21 +13,31 @@ import re
 import random
 from pywsd.similarity import max_similarity
 from pywsd.lesk import adapted_lesk
-from pywsd.lesk import simple_lesk
-from pywsd.lesk import cosine_lesk
 from nltk.corpus import wordnet as wn
-from summarizer import summarize
+from summarizer import summarize_doc
 
+import nltk
+import ssl
 
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
+
+# Set NLTK data path
+nltk_data_path = os.path.join(os.path.expanduser("~"), "nltk_data")
+if not os.path.exists(nltk_data_path):
+    os.makedirs(nltk_data_path)
+nltk.data.path.append(nltk_data_path)
 
 def excecute(full_text):
 
     #f = open("sun.txt","r")
     #full_text = f.read()
     #full_text = "Scientists know many things about the Sun. They know how old it is. The Sun is more than 4 billion years old. That would be too many candles to put on a birthday cake!  They also know the Sun's size. The Sun may seem small, but that is because it is so far away. It is about 93 million miles (150 million kilometers) away from the Earth. The Sun is so large that the diameter of the Sun is 109 times the Earth's diameter. The Sun also weighs as much as 333,000 Earths. The Sun is made up of gases: 75% hydrogen and 25% helium.  Hydrogen is the simplest and lightest of all of the known elements. When you combine hydrogen with oxygen, you get water. You probably know what helium is. It is the gas that can be put into balloons to make them stay in the air and float. Scientists also know the temperature of the Sun. The surface of the Sun is about 10,000 degrees Fahrenheit (5,600 degrees Celsius). That might sound hot, but the Sun's core is even hotter. The core is the central region where the temperature reaches about 27 million degrees Fahrenheit (15 million Celsius). The Sun is the center of our Solar System. Besides the Sun, the Solar System is made up of the planets, moons, asteroid belt, comets, meteors, and other objects. The Earth and other planets revolve around the Sun. The Sun is very important. Without it, there would be only darkness and our planet would be very cold and be without liquid water. Our planet would also be without people, animals, and plants because these things need sunlight and water to live. The Sun also gives out dangerous ultraviolet light which causes sunburn and may cause cancer. That is why you need to be careful of the Sun and wear sunscreen and clothing to protect yourself from its rays. Scientists have learned many things about the Sun. They study the Sun using special tools or instruments such as telescopes. One thing they do is to look at the amount of light from the Sun and the effect of the Sun's light on the Earth's climate. The Sun is actually a star. It is the closest star to the Earth.  Scientists also study other stars, huge balls of glowing gas in the sky. There are over 200 billion stars in the sky. Some are much larger than the Sun and others are smaller than the Earth. They all look tiny because they are so far away from the Earth. This distance is measured in light-years, not in miles or kilometers. One light-year is equal to the distance that light travels in one year. This is about six trillion miles or ten trillion kilometers!  Stars look like they are twinkling because when we see them, we are looking at them through thick layers of turbulent (moving) air in the Earth's atmosphere. That is why the words are written in the song: Twinkle, Twinkle, Little Star. Stars have lifetimes of billions of years. They are held together by their own gravity. Over half of the stars in the sky are in groups of two. They orbit around the same center point and across from each other. There are also larger groups of stars called clusters. These clusters of stars make up galaxies. Our Solar System is located in the Milky Way Galaxy. "
-
-    summarized_text = summarize(full_text)
-    print(summarized_text)
+    summarized_text = summarize_doc(full_text)
 
 
     def get_nouns_multipartite(text):
@@ -42,7 +51,7 @@ def excecute(full_text):
         stoplist = list(string.punctuation)
         stoplist += ['-lrb-', '-rrb-', '-lcb-', '-rcb-', '-lsb-', '-rsb-']
         stoplist += stopwords.words('english')
-        extractor.candidate_selection(pos=pos, stoplist=stoplist)
+        extractor.candidate_selection(pos=pos)
         # 4. build the Multipartite graph and rank candidates using random walk,
         #    alpha controls the weight adjustment mechanism, see TopicRank for
         #    threshold/method parameters.
@@ -57,13 +66,13 @@ def excecute(full_text):
         return out
 
     keywords = get_nouns_multipartite(full_text) 
-    print (keywords)
+    print ("Keywords ",keywords)
     filtered_keys=[]
     for keyword in keywords:
         if keyword.lower() in summarized_text.lower():
             filtered_keys.append(keyword)
             
-    print (filtered_keys)
+    print ("Filtered keywords ",filtered_keys)
     #filtered_keys = keywords
 
 
@@ -177,29 +186,27 @@ def excecute(full_text):
         except:
             print("Here Error")
 
+    mcq_list = []
     index = 1
-    mcqs = ""
     print ("#############################################################################")
     print ("NOTE::::::::  Since the algorithm might have errors along the way, wrong answer choices generated might not be correct for some questions. ")
     print ("#############################################################################\n\n")
     for each in key_distractor_list:
         sentence = keyword_sentence_mapping[each][0]
         pattern = re.compile(each, re.IGNORECASE)
-        output = pattern.sub( " _______ ", sentence)
-        mcqs += "%s)"%(index)+" "+output+"\n"     #up
-        print ("%s)"%(index),output)
+        output = pattern.sub(" _______ ", sentence)
         choices = [each.capitalize()] + key_distractor_list[each]
         top4choices = choices[:4]
         random.shuffle(top4choices)
-        optionchoices = ['a','b','c','d']
-        for idx,choice in enumerate(top4choices):
-            print ("\t",optionchoices[idx],")"," ",choice)
-            mcqs += "\t"+optionchoices[idx]+")"+" "+choice
-        print ("\n\tMore options: ", choices[4:9],"\n\n")
-        mcqchoices = ", ".join(choices[4:9])
-        mcqs += "\n\tMore options: "+ mcqchoices +"\n\n"
-        index = index + 1
-    return mcqs
+        answer = each.capitalize()
+        mcq_obj = {
+            "question": f"{index}) {output}",
+            "options": top4choices,
+            "answer": answer
+        }
+        mcq_list.append(mcq_obj)
+        index += 1
+    return mcq_list
 
 #full_text = "Scientists know many things about the Sun. They know how old it is. The Sun is more than 4 billion years old. That would be too many candles to put on a birthday cake!  They also know the Sun's size. The Sun may seem small, but that is because it is so far away. It is about 93 million miles (150 million kilometers) away from the Earth. The Sun is so large that the diameter of the Sun is 109 times the Earth's diameter. The Sun also weighs as much as 333,000 Earths. The Sun is made up of gases: 75% hydrogen and 25% helium.  Hydrogen is the simplest and lightest of all of the known elements. When you combine hydrogen with oxygen, you get water. You probably know what helium is. It is the gas that can be put into balloons to make them stay in the air and float. Scientists also know the temperature of the Sun. The surface of the Sun is about 10,000 degrees Fahrenheit (5,600 degrees Celsius). That might sound hot, but the Sun's core is even hotter. The core is the central region where the temperature reaches about 27 million degrees Fahrenheit (15 million Celsius). The Sun is the center of our Solar System. Besides the Sun, the Solar System is made up of the planets, moons, asteroid belt, comets, meteors, and other objects. The Earth and other planets revolve around the Sun. The Sun is very important. Without it, there would be only darkness and our planet would be very cold and be without liquid water. Our planet would also be without people, animals, and plants because these things need sunlight and water to live. The Sun also gives out dangerous ultraviolet light which causes sunburn and may cause cancer. That is why you need to be careful of the Sun and wear sunscreen and clothing to protect yourself from its rays. Scientists have learned many things about the Sun. They study the Sun using special tools or instruments such as telescopes. One thing they do is to look at the amount of light from the Sun and the effect of the Sun's light on the Earth's climate. The Sun is actually a star. It is the closest star to the Earth.  Scientists also study other stars, huge balls of glowing gas in the sky. There are over 200 billion stars in the sky. Some are much larger than the Sun and others are smaller than the Earth. They all look tiny because they are so far away from the Earth. This distance is measured in light-years, not in miles or kilometers. One light-year is equal to the distance that light travels in one year. This is about six trillion miles or ten trillion kilometers!  Stars look like they are twinkling because when we see them, we are looking at them through thick layers of turbulent (moving) air in the Earth's atmosphere. That is why the words are written in the song: Twinkle, Twinkle, Little Star. Stars have lifetimes of billions of years. They are held together by their own gravity. Over half of the stars in the sky are in groups of two. They orbit around the same center point and across from each other. There are also larger groups of stars called clusters. These clusters of stars make up galaxies. Our Solar System is located in the Milky Way Galaxy. "
 #excecute(full_text)

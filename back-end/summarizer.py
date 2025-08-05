@@ -1,58 +1,68 @@
-from groq import Groq
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains.summarize import load_summarize_chain
+from langchain.chains import LLMChain
 from langchain.document_transformers import EmbeddingsClusteringFilter
+from langchain.prompts import PromptTemplate
 from langchain_huggingface import HuggingFaceEmbeddings
-import torch
+from langchain_groq import ChatGroq
+from dotenv import load_dotenv
+import os
 
-device = "cpu"  # force CPU
+# Load environment variables from .env file
+load_dotenv()
 
-# If you use SentenceTransformer directly:
-from sentence_transformers import SentenceTransformer
-model = SentenceTransformer("model-name", device=device)
+api_key = os.getenv("GROQ_API_KEY")
 
-client = Groq(api_key="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")
-def groq_response(text):
-  try:
-    prompt = f"""Generate a concise summary focussed on keeping the flow and facts of the text:
-          
-          content:
-          {text}  # Increased context window
-          """
-    response = client.chat.completions.create(
-         model="llama3-8b-8192",
-         messages=[{"role": "user", "content": prompt}],
-         temperature=0.1,
-         max_tokens=256
-     )
-   
-    text = response.choices[0].message.content
-    return text
-  except Exception as e:
-        print(f"Groq API error: {e}")
-        return ""
 
-    
-def summarize_document_with_kmeans_clustering(text, llm, embeddings):
-    filter = EmbeddingsClusteringFilter(embeddings=embeddings, num_clusters=10)
-    
-    try:
-       result = filter.transform_documents(documents=text)
-       checker_chain = load_summarize_chain(llm ,chain_type="stuff")
-       summary = checker_chain.run(result)
-       return summary
-    except Exception as e:
-       return str(e)
-    
+# ---- Embeddings Model Setup ----
 model_name = "BAAI/bge-base-en-v1.5"
-model_kwargs = {"device": "cuda"} # CUDA for GPU support
+model_kwargs = {"device": "cpu"}
 encode_kwargs = {"normalize_embeddings": True}
+
 embeddings = HuggingFaceEmbeddings(
-     model_name=model_name,
-     model_kwargs=model_kwargs,
-     encode_kwargs=encode_kwargs
+    model_name=model_name,
+    model_kwargs=model_kwargs,
+    encode_kwargs=encode_kwargs
+)
+# ---- LLM (Groq) Setup ----
+llm = ChatGroq(
+    api_key=api_key,
+    model_name="llama3-8b-8192",
+    temperature=0.1,
+    max_tokens=256
 )
 
+# ---- Prompt Template ----
+summary_template = """
+Generate a concise and factually accurate summary of the following content while preserving the logical flow:
+
+Content:
+{text}
+"""
+
+prompt = PromptTemplate(
+    input_variables=["text"],
+    template=summary_template
+)
+
+# ---- Summarization Chain using PromptTemplate ----
+summary_chain = LLMChain(llm=llm, prompt=prompt)
+
+# ---- Summarization Logic ----
+def summarize_document_with_kmeans_clustering(documents, chain, embeddings):
+    try:
+        filter = EmbeddingsClusteringFilter(embeddings=embeddings, num_clusters=10)
+        clustered_docs = filter.transform_documents(documents)
+
+        # Combine text from clustered docs
+        full_text = " ".join([doc.page_content for doc in clustered_docs])
+
+        # Use LLMChain with prompt template
+        summary = chain.run(text=full_text)
+        return summary
+    except Exception as e:
+        return f"Error during summarization: {e}"
+
+# ---- High-level Entry Point ----
 def summarize_doc(text):
     try:
         text_splitter = RecursiveCharacterTextSplitter(
@@ -61,10 +71,7 @@ def summarize_doc(text):
             length_function=len
         )
         docs = text_splitter.create_documents([text])
-        
-        # Summarize using KMeans clustering
-        summary = summarize_document_with_kmeans_clustering(docs, groq_response, embeddings)
-        
+        summary = summarize_document_with_kmeans_clustering(docs, summary_chain, embeddings)
         return summary
     except Exception as e:
         print(f"Error in summarization: {e}")

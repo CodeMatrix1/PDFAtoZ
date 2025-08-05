@@ -6,6 +6,7 @@ import { FiUpload } from "react-icons/fi";
 function HomePage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedFileName, setSelectedFileName] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -16,8 +17,10 @@ function HomePage() {
   const handleSamplePDF = async () => {
     setLoading(true);
     try {
+      // If sample.pdf is in your frontend public folder:
       const res = await fetch("/sample.pdf");
-      print(res);
+      if (!res.ok) throw new Error("Sample PDF not found");
+      console.log(res);
       const blob = await res.blob();
       const file = new File([blob], "sample.pdf", { type: "application/pdf" });
       setSelectedFile(file);
@@ -79,6 +82,21 @@ function HomePage() {
       >
         View results
       </button>
+      {selectedFile && (
+        <div className="flex items-center justify-center mt-4">
+          <div className="bg-gray-100 p-4 rounded shadow">
+            <p>
+              <strong>File Name:</strong> {selectedFile.name}
+            </p>
+            <p>
+              <strong>File Size:</strong> {selectedFile.size} bytes
+            </p>
+            <p>
+              <strong>File Type:</strong> {selectedFile.type}
+            </p>
+          </div>
+        </div>
+      )}
       <div className="top-0 left-0 right-0 bottom-0 flex items-center justify-center">
         <Image src="/arrow.png" alt="Logo" width={100} height={100} />
         <button

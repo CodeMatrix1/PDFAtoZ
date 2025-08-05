@@ -1,12 +1,16 @@
 from numpy.core.numeric import full
+import os
+import nltk
 import pke
 import string
 import re
 import torch
 from pytorch_pretrained_bert import BertTokenizer,BertForMaskedLM
 from nltk.tokenize import sent_tokenize
-import nltk
-nltk.download('punkt')
+nltk_data_path = os.path.join(os.path.expanduser("~"), "nltk_data")
+if not os.path.exists(nltk_data_path):
+    os.makedirs(nltk_data_path)
+nltk.data.path.append(nltk_data_path)
 from flashtext import KeywordProcessor
 
 

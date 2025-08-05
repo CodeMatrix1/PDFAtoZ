@@ -22,6 +22,12 @@ next-env.d.ts
 .env*
 .vercel
 
+# Python backend
+back-end/__pycache__/
+back-end/venv/
+back-end/.env*
+back-end/.pytest_cache/
+
 # If you have a top-level venv
 venv/
 
